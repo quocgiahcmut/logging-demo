@@ -1,4 +1,5 @@
-﻿using LoggingTest.Identity.Models;
+﻿using LoggingTest.Domain.Model;
+using LoggingTest.Identity.Models;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -11,14 +12,18 @@ namespace LoggingTest.Persistence.Contexts
 {
     public class ApplicationDbContext : IdentityDbContext<ApiUser>
     {
-        private readonly ILoggerFactory _loggerFactory;
-        public ApplicationDbContext(DbContextOptions options, ILoggerFactory loggerFactory) : base(options)
+        public DbSet<Value> Values { get; set; }
+
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
         {
-            _loggerFactory = loggerFactory;
         }
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+
+        protected override void OnModelCreating(ModelBuilder builder)
         {
-            optionsBuilder.UseLoggerFactory(_loggerFactory);
+            base.OnModelCreating(builder);
+
+            builder.Entity<Value>()
+                .HasKey(p => p.Id);
         }
     }
 }

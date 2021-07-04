@@ -30,7 +30,6 @@ namespace LoggingTest
         private static readonly string _secretKey = "iNivDmHLpUA223sqsfhqGbMRdRj1PVkH12345";
         private static readonly SymmetricSecurityKey _signingKey = new SymmetricSecurityKey(
             Encoding.ASCII.GetBytes(_secretKey));
-        private readonly ILoggerFactory LoggerFactory;
 
         public Startup(IConfiguration configuration)
         {
@@ -48,10 +47,10 @@ namespace LoggingTest
             string migrationAssembly = typeof(ApplicationDbContext).GetTypeInfo().Assembly.GetName().Name;
 
             services.AddDbContext<ApplicationDbContext>(options => options
-                .UseSqlServer(Configuration.GetConnectionString("DefaultConnection"))
-                .UseLoggerFactory(LoggerFactory));
+                .UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
 
-            services.AddDbContext<LogDbContext>(options => options.UseSqlServer(this.Configuration.GetConnectionString("DefaultServerConnection"), b => b.MigrationsAssembly(migrationAssembly)));
+            services.AddDbContext<LogDbContext>(options => options
+                .UseSqlServer(Configuration.GetConnectionString("DefaultConnection"), b => b.MigrationsAssembly(migrationAssembly)));
 
             services.AddAutoMapper(typeof(Startup));
 
@@ -115,22 +114,22 @@ namespace LoggingTest
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory logf)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory)
         {
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
             }
 
+            app.UseSerilogRequestLogging();
+
             Log.Logger = new LoggerConfiguration()
                 .WriteTo.EntityFrameworkSink(app.ApplicationServices.GetService<LogDbContext>)
-                .CreateLogger();
+                .CreateBootstrapLogger();
 
-            logf.AddSerilog();
+            loggerFactory.AddSerilog();
 
-            app.UseHttpsRedirection();
-
-            app.UseSerilogRequestLogging();
+            app.UseHttpsRedirection();        
 
             app.UseRouting();
 

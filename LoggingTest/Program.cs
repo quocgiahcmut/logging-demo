@@ -7,30 +7,30 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Serilog;
+using Serilog.Events;
 
 namespace LoggingTest
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static int Main(string[] args)
         {
             Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+                .Enrich.FromLogContext()
                 .WriteTo.Console()
                 .CreateBootstrapLogger();
 
-            Log.Information("Starting up!");
-
             try
             {
+                Log.Information("Starting web host");
                 CreateHostBuilder(args).Build().Run();
-
-                Log.Information("Stopped cleanly");
-                return;
+                return 0;
             }
             catch (Exception ex)
             {
-                Log.Fatal(ex, "An unhandled exception occured during bootstrapping");
-                return;
+                Log.Fatal(ex, "Host terminated unexpectedly");
+                return 1;
             }
             finally
             {
@@ -40,14 +40,14 @@ namespace LoggingTest
 
         public static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
-                .ConfigureWebHostDefaults(webBuilder =>
-                {
-                    webBuilder.UseStartup<Startup>();
-                })
                 .UseSerilog((context, services, configuration) => configuration
                     .ReadFrom.Configuration(context.Configuration)
                     .ReadFrom.Services(services)
                     .Enrich.FromLogContext()
-                    .WriteTo.Console());
+                    .WriteTo.Console())
+                .ConfigureWebHostDefaults(webBuilder =>
+                {
+                    webBuilder.UseStartup<Startup>();
+                });
     }
 }
